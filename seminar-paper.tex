@@ -1,0 +1,525 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper]{geometry}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsthm}
+\usepackage{float}
+\usepackage{blindtext}
+\usepackage{mathtools}
+\usepackage{babelbib}
+\usepackage{babel}
+\usepackage{commath}
+\usepackage{ngerman}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{automata}
+\usetikzlibrary{tikzmark}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage[boxed]{algorithm2e}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{mdframed}
+\usepackage{tikz}
+\usepackage{wrapfig}
+\usepackage{multicol}
+\usetikzlibrary{shapes}
+
+\usepackage[nodisplayskipstretch]
+{setspace} 
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{fakt}{Fakt}
+\newtheorem{theorem}{Theorem}
+\newtheorem{korollar}{Korollar}
+\newtheorem{def1}{Definition}
+
+\usetikzlibrary{arrows, arrows.meta, positioning, matrix}
+
+\usetikzlibrary{decorations.pathmorphing}
+
+\newtheoremstyle{break}
+  {\topsep}{\topsep}%
+  {\itshape}{}%
+  {\bfseries}{}%
+  {\newline}{}%
+\theoremstyle{break}
+\newtheorem{definition}{Definition}
+
+\newtheoremstyle{norm}
+ {3pt}% Space above
+  {3pt}% Space below
+  {\normalfont}% Body font (upright)
+  {}% Indent amount
+  {\bfseries}% Theorem head font
+  {.}% Punctuation after theorem head
+  {.5em}% Space after theorem head
+  {}% Theorem head spec (can be left empty, meaning `normal`)
+
+\theoremstyle{norm}
+\newtheorem{ex}{Beispiel}
+\title{Komplexität von Code-Problemen \\[3mm] \large Ausarbeitung im Seminar ``Komplexität'' \\ am FG Theoretische Informatik / Formale Methoden \\ der Universit\"at Kassel}
+\author{Ahmad Lowejatan Noori}
+\date{Sommersemester 2024}
+
+\begin{document}
+
+\usetikzlibrary{positioning}
+\maketitle
+\begin{abstract}
+    Codes als Menge von Bit\-strings fester Länge sind von enormer Wichtigkeit in der Datenübertragung. Minimale sowie überdeckende Codes werden durch den Radius und den Covering Radius formalisiert, in der die Metrik der Hamming-Distanzen Relevanz hat. In der Ausarbeitung werden das Minimum-Radius-Problem (MR) und das Maximum-Covering-Radius-Problem (MCR) untersucht und sowohl die Äquivalenz als auch die NP-Vollständigkeit beider Probleme gezeigt. 
+\end{abstract}
+\section{Einführung}
+\noindent
+In der Datenübertragungs- und Nachrichtentechnik spielen Codes eine entscheidende Rolle, um Informationen sicher und effizient zu übertragen. Analoge Signale werden durch Abtastung, Quantisierung und Kodierung digitalisiert, wobei die Daten in Bitstrings (Codewörter) umgewandelt werden. Ein Code ist eine Menge von Codewörtern, und die Kodierung stellt sicher, dass die Daten in einer Form vorliegen, die für die Übertragung geeignet ist. Während der Übertragung können jedoch durch Rauschen, Interferenzen oder andere Störungen Fehler auftreten, die dazu führen, dass empfangene Codewörter von den gesendeten abweichen. Um solche Fehler zu behandeln, haben sich Feh\-ler\-kor\-rekt\-ur- und Fehlererkennungsverfahren bewährt. Die Effektivität dieser Verfahren hängt von der Form des Codes ab. Dabei besteht ein Kompromiss zwischen minimalen Codes. Minimale Codes beanspruchen weniger Speicherbedarf und verursachen eine geringere Übertragungslast. Überdeckende Codes hingegen fügen zusätzliche Bits hinzu, um eine zuverlässigere Fehlererkennung und -korrektur zu ermöglichen, was jedoch die Effizienz in der Übertragung verringert.
+Diese Charakteristika lassen sich über den \textit{Radius} bzw. dem \textit{Covering Radius} eines Codes konkretisieren, für die entsprechende Entscheidbarkeitsprobleme formalisiert werden, deren NP-Vollständigkeit in dieser Aus\-ar\-beit\-ung bewiesen wird. Das bedeutet, dass keine effizienten Algorithmen für die Entscheidbarkeit dieser Probleme bekannt sind.
+Zunächst werden einige \hyperref[absch2]{theoretische Grundlagen} erläutert, auf welche die kommenden Lemmata zurückgreifen. In \hyperref[absch3]{Abschnitt 3} werden Radius und Covering Radius sowie die dazugehörigen Entscheidungsprobleme aufgestellt. Zusätzlich wird die Äquivalenz beider Probleme bezüglich Polynomialzeit\-reduktionen bewiesen, um in Abschnitt 4 über die NP-Vollständigkeit von MR auf die NP-Vollständigkeit von MCR zu schließen. \hyperref[absch4]{Abschnitt 4} thematisiert insbesondere die NP-Schwere von MR. \hyperref[absch5]{Abschnitt 5} bietet einen kleinen Ausblick über ein weiteres Anwendungsgebiet.
+Die Darstellung der Ausarbeitung folgt den Erkenntnissen von Francis und Litman \cite{Frances1997OnCP}.
+\section{Vorbereitungen}\label{absch2}
+Für Codes und Codewörter werden zunächst in \hyperref[vektorenundcodes]{2.1} die notwendigen Notationen eingeführt. In \hyperref[metrik]{2.2} werden die notwendigen Grundlagen zu Metriken behandelt sowie eine Abbildung mit einer hilfreichen Eigenschaft definiert. Für den Beweis der NP-Schwere von MR werden in \hyperref[sat]{2.3} Grundkenntnisse zu aussagenlogischen Formeln und das 3SAT-Problem aufgestellt.
+\subsection{Vektoren und Codes}
+\label{vektorenundcodes}
+Für $n\in\mathbb{N}$ wird eine Menge $C \subseteq \{0,1\}^n$ als Code und beliebige $v \in \{0,1\}^n$ als Vektoren bezeichnet. Bezuglich den Vektoren sind folgende Formalitäten relevant:
+\begin{itemize}
+    \item $v_i$ ist das $i$-te Bit von $v$ mit $v\in\{0,1\}^n$ und $1\leq i \leq n$.
+    \item $v|_i^j$  ist der Subvektor $v_i\ldots v_j$ für $1 \leq i < j \leq n$.
+    \item Ein Block von $v$ ist der 2-Bit-Subvektor $v|_{2i-1}^{2i}$ für ein $i$ mit $1\leq i \leq n$.
+    \item Ein Doppelblock von $v$ ist der 2-Bit-Subvektor $v|_{2i-1}^{2i}$ mit $v_{2i-1}=v_{2i}$.
+    \item $uv$ ist die Konkatenation von $u\in\{0,1\}^m, v\in\{0,1\}^n$ mit $n, m \in \mathbb{N}$.
+    \end{itemize}   
+
+\subsection{Metriken und Bitverschiebungen}
+\label{metrik}
+Der Abstand zweier Vektoren zueinander wird über die Hamming-Distanz gemessen. Die Hamming-Distanz $d$ ist eine Metrik auf $\{0,1\}^n$ mit
+\begin{center}
+ $d(u,v) =\sum_{i=1}^n\Phi(u_i,v_i) \text{ für } u,v \in \{0,1\}^n \text{ mit }$\\
+ \vspace{0.5em}
+   $\Phi: \Sigma \times \Sigma \rightarrow \{0,1\}, \Phi(a,b) =
+\begin{cases}
+0 & \text{wenn } a = b,\\
+1 & \text{sonst}
+\end{cases}$
+\end{center}
+Eine Abbildung $d: X \times X \rightarrow \mathbb{R}^+_0$ heißt Metrik auf $X$, wenn für beliebige Elemente $x, y, z \in X$ gilt:
+     \begin{enumerate}
+        \item $d(x,y)\geq0$
+        \item $d(x,y) = d(y,x)$
+        \item $d(x,y)\leq d(x,z) + d(z,y)$
+        \item $d(x,x) = 0$
+    \end{enumerate}
+Wenn $d$ eine Metrik auf $X$ ist, dann heißt $(X,d)$ metrischer Raum (siehe \cite{Jänich1996} Kapitel: \textit{Die Grundbegriffe}).\\
+Der Hamming-Ball $B_n(u,r)$ ist definiert als  
+\begin{center}
+$B_n(u,r)=\{v\in\{0,1\}^n \mid d(u,v) \leq r\}$
+\end{center}
+der auch als $r$-Ball um $u$ bezeichnet wird. \\
+Die Abbildung $f$ zwischen zwei metrischen Räumen $(X_1,d)$ und $(X_2,d)$ mit \begin{center}
+    $f: X_1 \rightarrow X_2$ und $d(f(x), f(y)) = d(x,y)$
+\end{center} wird Isometrie genannt. Wenn $f$ zusätzlich bijektiv ist, dann ist $f$ eine isometrische Isomorphie (siehe \cite{Jänich1996} Kapitel: \textit{Vervollständigung metrischer Räume}).
+\begin{def1}
+    Definiere $S_i: \{0,1\}^{2n} \rightarrow \{0,1\}^{2n}$ als die Abbildung, die einen Vektor zirkulär um $2i-2$ Bits nach rechts verschiebt für ein $i$ mit $1\leq i \leq n$.
+\end{def1}
+\begin{figure}[H]
+    \centering
+\begin{tikzpicture}
+\matrix (x)[matrix of nodes,row sep=1em,column sep=0em, nodes={draw, anchor=center, minimum width=3em, minimum height=0.3em, text height=1.5ex, text depth=.25ex}] {
+    1 & 0 & 1 & \textbf{1} & \textbf{0} \\
+    \textbf{0} & 1 & 0 & 1 & \textbf{1} \\
+    \textbf{1} & \textbf{0} & 1 & 0 & 1 \\
+};
+\draw [->] (x-1-5) -- (x-2-1);
+\draw [->] (x-2-5) -- (x-3-1);
+
+
+\end{tikzpicture}
+    \caption{Ein Beispiel für $S_2(10110)$.}
+    \label{fig:enter-label}
+\end{figure}
+\begin{lemma}
+$S_i$ ist ein isometrischer Isomorphismus vom metrischen Raum $(\{0,1\}^{2n},d)$ auf sich selbst.
+\end{lemma}
+\begin{proof}[Beweis]
+ Nach Def. muss gelten: (1) $S_i$ ist eine Isometrie und (2) bijektiv.\\
+(1) Sei $u,v\in\{0,1\}^{2n}$ und $k$ die Anzahl der Bits, die durch $S_i$ zirkulär rechtsverschoben werden mit $k=2i-2$ und $1\leq k \leq 2n-2$. Es gilt
+\begin{align*}
+    d(S_i(u),S_i(v)) &= d(u_{2n-k+1}u_{2n-k+2}\ldots u_{2n}u_1u_2\ldots u_{2n-k},\\
+    &\qquad v_{2n-k+1}v_{2n-k+2}\ldots v_{2n}v_1v_2\ldots v_{2n-k})\\
+    &= \Phi(u_{2n-k+1}, v_{2n-k+1}) + \ldots + \Phi(u_{2n},v_{2n})\ + \\
+    &\qquad \Phi(u_{1},v_{1}) + \ldots + \Phi(u_{2n-k},v_{2n-k})\\
+    &= \Phi(u_{1},v_{1}) + \ldots + \Phi(u_{2n-k},v_{2n-k})\ + \\
+    &\qquad \Phi(u_{2n-k+1}, v_{2n-k+1}) + \ldots + \Phi(u_{2n},v_{2n})\\
+    &= \sum_{j=1}^{2n}\Phi(u_j,v_j)\\
+    &= d(u,v).
+\end{align*}
+(2) Offensichtlich ist $S_i$ bijektiv, denn die eindeutige Umkehrung $S^{-1}$ ist lediglich eine zirkuläre Linksverschiebung um $2i-2$ Bits.   
+\end{proof}
+\subsection{Das 3SAT-Problem}
+\label{sat}
+Eine  Formel $\varphi$ ist in konjunktiver Normalform (CNF), wenn $\varphi$ die Form 
+\begin{center}
+    $\varphi = c^1 \land c^2 \land \dotsb \land c^t$
+\end{center}
+für $t\geq1$ hat, wobei jeder der Klauseln $c^i, 1\leq i \leq t$, die Form 
+\begin{center}
+    $c^i = l_{i,1} \lor \dotsb \lor l_{i,n_i}$
+\end{center}
+mit $n_i\geq1$ hat, in der jeder Ausdruck $l_{i,j}, 1\leq i \leq , 1 \leq j \leq n_i,$ ein Literal (d.h. eine Variable oder negierte Variable) ist. $\varphi$ ist eine 3CNF-Formel, wenn jede Klausel genau drei Literale enthält.
+Eine Belegung $\mathcal{I}: var \rightarrow \{0,1\}$ weist jeder Aussagenvariable einen Wahrheitswert 1 bzw. 0 zu. Unter einer Belegung wird eine Formel induktiv zu 1 oder 0 ausgewertet. Wenn es eine Belegung $\mathcal{I}$ gibt mit $\mathcal{I}(\varphi)=1$, dann ist $\varphi$ erfüllbar.
+\begin{definition}[3SAT-Problem]
+    \textbf{Eingabe:} Eine 3CNF-Formel $\varphi$.\\
+\textbf{Frage:} Gibt es eine Belegung, die $\varphi$ erfüllt?   
+\end{definition}
+\noindent
+Das Cook-Levin-Theorem \cite{Cook1971TheCO} besagt, dass 3SAT NP-Vollständig ist.
+
+\section{MR und MCR}\label{absch3}
+In der Einführung wurden die Begriffe Radius und Covering Radius genannt. Der Radius R($C$) eines Codes $C$ ist das kleinste $r \in \mathbb{N}$, sodass ein $u \in \{0,1\}^n$ existiert mit $C\subseteq B_n(u,r)$.
+Der Covering Radius $\text{CR}(C)$ eines Codes $C$ ist das kleinste $r \in \mathbb{N}$, sodass $\{0,1\}^n =  \bigcup_{u \in C} B_n(u,r)$.
+
+\subsection{Definitionen}
+\begin{multicols}{2}[\columnsep2em]
+\begin{definition}[Minimum-Radius-Problem (MR)]
+\noindent
+\textbf{Eingabe:} ein Code  $C \subseteq \{0,1\}^n$ und $k \in \mathbb{N}$\\
+\textbf{Frage:} Ist $\text{R}(C)\leq k$?
+\end{definition}
+\begin{ex}\label{beispiel1}
+ In Abbildung 1 ist der Code $C$ mit $C=\{101,111,100\}$ vollständig im 1-Ball um 101 enthalten. Der Radius von C beträgt damit 1 und folglich gilt hier sogar für alle $k \geq 1$, dass $\langle C,k\rangle$ eine gültige Ja-Instanz des Minimum Radius Problem wäre.
+\end{ex}
+\columnbreak
+\begin{figure}[H]
+        \centering
+          \begin{tikzpicture}
+            \draw (0,0) circle (30pt);
+            \node[yshift = 1em] {101};
+            \node[yshift = 1em] {101};
+            \node[yshift = -1em, xshift = 1em] {111};
+            \node[yshift = -0.5em, xshift = -1em] {100};
+            \node at (0,-0.8) {$C$};
+            \draw (0,0) circle (50pt);
+            \node at (0,-1.35) {$B_3(101,1)$};
+            \node at (0.3,1.4) {001};
+        \end{tikzpicture}
+        \caption{Ein Beispiel für $C \subseteq \{0,1\}^3$, $B_3(101,1)$.}
+        \label{fig:enter-label}
+\end{figure}
+\end{multicols}
+\begin{multicols}{2}[\columnsep2em]
+\begin{definition}[Maximum-Covering-Radius-Problem (MCR)]
+\noindent
+\textbf{Eingabe:} ein Code $C \subseteq \{0,1\}^n$ und $k \in \mathbb{N}$\\
+\textbf{Frage:} Ist $\text{CR}(C)$ $\geq k$?
+\end{definition}
+\begin{ex}
+Die Tabelle in Abbildung 2 veranschaulicht mit demselben Code $C$ aus dem vorherigen \hyperref[beispiel1]{Beispiel}, wie die Vereinigung der 2-Bälle um die Codewörter vollständig den gesamten Raum $\{0,1\}^n$ abdecken (siehe die fett markierten Vektoren). Der Covering Radius von $C$ beträgt damit 2 und folglich gilt hier für alle $k \leq 2$, dass $\langle C,k\rangle$ eine gültige Ja-Instanz des Maximum Covering Radius Problem wäre.
+\end{ex}
+\columnbreak
+   \begin{figure}[H]
+    \centering
+        \begin{tabular}{|c||c|}
+        \hline
+            Code C & 2-Ball\\ 
+        \hline
+             \textbf{101} & \textbf{000}, \textbf{001}, \\ & \textbf{011}, 100, \\ & 101, \textbf{110}, \\ & 111 \\ 
+
+        \hline
+             \textbf{100} &  000, 001, \\ & \textbf{010}, 100, \\ & 101, 110, \\ & 111 \\ 
+        \hline
+             \textbf{111} & 001, 010, \\ & 011, 100, \\ & 101, 110, \\ & 111 \\ 
+            \hline
+        \end{tabular}
+    \caption{Eine beispielhafte Tabelle für $C \subseteq \{0,1\}^3$ und alle $v \in B_3(u,2)$ für ein $u\in C$.}
+    \label{fig:enter-label}
+\end{figure}
+\end{multicols}
+\subsection{Äquivalenz von MR und MCR}
+Sind beide Probleme zueinander äquivalent, so lassen sich beide aufeinander in höchstens polynomieller Zeit reduzieren.
+ Die Reduktion folgt aus der Summe $\text{R}(C) + \text{CR}(C) = n$. Über die Äquivalenz kann mit der NP-Vollständigkeit von MR leicht die NP-Vollständigkeit von MCR gezeigt werden.
+\begin{lemma}
+ Sei $u\in \{0,1\}^n$, dann ist $B_n(u^c, n-r-1)$ das Komplement von $B_n(u,r)$ in $\{0,1\}^n$.
+\end{lemma} 
+\begin{proof}[Beweis]
+\begin{align*}
+v \not \in B_n(u,r) &\Leftrightarrow d(u,v) > r\\
+&\Leftrightarrow d(u^c,v) < n-r\\
+&\Leftrightarrow v \in B_n(u^c, n-r-1)
+\end{align*} 
+\end{proof}
+
+\begin{lemma}
+ Für alle $C \subseteq \{0,1\}^n$ mit $C \not = \emptyset$ gilt: $\text{R}(C) + \text{CR}(C) = n$.
+\end{lemma}
+\begin{proof}[Beweis]
+Sei $r_{max}$ das größte $r$, sodass es ein $v\in\{0,1\}^n$ gibt mit $B_n(v,r)\cap C = \emptyset$.\\Mit $r_{max}+1$ existiert nun ein $u\in\{0,1\}^n$ mit $u\in B_n(v,r_{max}+1)\cap C$, insbesondere also $u\in C$.\\Daraus folgt, dass für alle $w\in \{0,1\}^n\setminus C $ gilt: $d(u,w)\leq r_{max}+1$, \\also folgt daraus ebenfalls $\{0,1\}^n = \bigcup_{u \in C} B_n(u,r_{max}+1)$, und damit gilt 
+\begin{align*}
+\text{CR}(C) &= r_{max}+1\\
+   &= max\{r \mid \exists v: C \cap B_n(v,r) = \emptyset\}+1.\\
+  \shortintertext{Nach Def. von $\text{R}(C)$}
+\text{R}(C) + \text{CR}(C) &= min\{t \mid \exists u: C \subseteq B_n(u,t)\}\ +\\&\qquad (max\{r \mid \exists v: C \cap B_n(v,r) = \emptyset\}+1).
+\shortintertext{Nach Lemma 2}
+   &= min\{t \mid \exists u: C \subseteq B_n(u,t)\}\ + \\
+   &\qquad max\{r \mid \exists v: C \subseteq B_n(v,n-r-1)\}+1 .
+\shortintertext{Ersetze $r$ mit $n-r'-1$, dann gilt}
+   &= min\{t \mid \exists u: C \subseteq B_n(u,t)\}\ + \\
+   &\qquad max\{n-r'-1 \mid \exists v: C \subseteq B_n(v,r')\}+1 \\
+    &= min\{t \mid \exists u: C \subseteq B_n(u,t)\}\ + \\
+    &\qquad  n-1-min\{r' \mid \exists v: C \subseteq B_n(v,r')\}+1 \\
+   &= n.
+\end{align*}    
+\end{proof}
+\noindent
+Nach Theorem 1 gilt
+  $ \text{R}(C) \leq k \Leftrightarrow \text{CR}(C) \geq n-k$
+und damit sind MR und MCR aufeinander reduzierbar. Die Reduktionen sind offensichtlich polynomiell zeitbeschränkt in der Größe der Eingabe $\langle C, k\rangle$.
+\section{MR ist NP-schwer}\label{absch4}
+Um die NP-Vollständigkeit von MR zu zeigen, sodass über die Äquivalenz bezüglich Polynomialzeitreduktionen beider Probleme auf die NP-Vollständigkeit von MCR zu\-rück\-ge\-führt werden kann, sind für die Reduktion 3SAT$\leq$MR einige Mittel erforderlich. Intuitiv wird klar, dass eine erfüllbare Formel auf eine Art und Weise kodiert werden muss, sodass ein Code entsteht, dessen Radius genau dann eine passende obere Schranke hat. Die Klauseln einer Formel werden so kodiert, dass sie genau dann in einem Hamming-Ball mit dieser Schranke enthalten sind, wenn die Formel erfüllbar ist. Hierbei ist das Zentrum immer die erfüllende Belegung kodiert als ein Vektor, welcher die Klau\-sel\-vek\-toren nur dann erreicht, wenn mindestens ein Literal in jeder Klausel erfüllt ist. Um aber zu versichern, dass nur erfüllbare Belegungen ``ausgefiltert'' werden, wenn der konstruierte Code mit einem Höchstradius gegeben ist, sind die Klauselvektoren als Teil des Codes nicht ausreichend. Mit der Hinzunahme einer bestimmten Menge zum Code, und somit auch zum Teil des genannten Hamming-Balls, wird erzwungen, dass das Zentrum stets eine erfüllende Belegung in Form eines Doppelvektors $v = (v_1v_1v_2v_2...v_nv_n) \in \{0,1\}^{2n}$ ist.
+\begin{figure}[H]
+    \centering
+      \begin{tikzpicture}
+    %(-0.3,-1.7) 
+            
+             \node[circle, draw] (t) at (0,0.5){$b_\top$}; 
+            \node[circle, draw] (f) at (-0.3,-1.7){$b_\bot$}; 
+            \draw (0,0) circle (0pt);
+            \node(c1) at (1.2,1.2) {$\tilde{c}_1$};
+            \node(c2) at (0.8,-1) {$\tilde{c}_2$};
+            \node (c3) at (-1.1, -0.5) {$\tilde{c}_3$};
+            \node (y2) at (-1.6, 0.7) {$\tilde{y}_2$};
+            \node (y3) at (1.6, -0.7) {$\tilde{y}_3$};
+            \node (y4) at (1.5, 0.5) {$\tilde{y}_4$};
+            \draw (0,0) circle (70pt);
+            \node (y1) at (0.3,1.4) {$\tilde{y}_1$};
+            \node at (0,-3) {$B_n(b_\top, \tilde{r})$};
+            \draw [->,thick] (t)--(c1);
+            \draw [->,thick] (t)--(c2);
+            \draw[->,thick] (t)--(c3);
+            \draw[->] (f)--(c1);
+            \draw[->] (f)--(c2);
+            \draw[->] (f)--(c3);
+            \draw [->,thick] (t)--(y1);
+            \draw [->,thick] (t)--(y2);
+            \draw[->,thick] (t)--(y3);
+                        \draw[->,thick] (t)--(y4);
+        \end{tikzpicture}
+    \caption{Die Intuition der Code-Struktur aus der Reduktion.}
+    \label{fig:enter-label}
+\end{figure}
+\begin{ex}
+In Abbildung 4 ist die Struktur eines Codes $C'$ mit $C'=\{\tilde{y}_1, \ldots, \tilde{y_4}, \tilde{c}_1, \ldots, \tilde{c}_3\}$ aus der beabsichtigten Reduktionsfunktion zu erkennen. Hierbei ist 
+\begin{itemize}
+    \item $b_\top$ eine erfüllende und $b_\bot$ eine nicht erfüllende Belegung, die passend kodiert sind.
+    \item $\tilde{y}_i$ mit $i\in\{1,2,3,4\}$ ein Vektor der selbst gewählten Menge, die die Auswahl von Zentren korrekt einschränkt.
+    \item $\tilde{c}_j$ mit $i\in\{1,2,3\}$ die kodierte Klausel einer erfüllbaren 3CNF-Formel.
+\end{itemize}
+Die Pfeile stellen die Erreichbarkeit vom Zentrum im Sinne des Radius $\tilde{r}$ dar. Die konkrete Menge der Vektoren $\tilde{y}$ wird im nächsten Abschnitt konstruiert und ihr ein\-schränk\-ender Charakter bewiesen.
+\end{ex}
+\subsection{Doppelvektoren}
+Von einer konstruierten Menge $Y \subseteq \{0,1\}^{2n}$ wird bewiesen, dass ein beliebiger Vektor $v \in \{0,1\}^n$ genau dann ein Doppelvektor ist, wenn $Y$ in dem $n$-Ball um $v$ enthalten ist. $Y$ wird konstruiert als 
+\begin{center}
+         $Y:= \{(01)^n, (10)^n\} \cup \bigcup_{i=1}^{n} \{(01)^{i-1}10(01)^{n-i}\}
+    \cup\bigcup_{i=1}^{n} \{(10)^{i-1}01(10)^{n-i}\}$.
+\end{center}
+Die Untermenge $Y^i$ mit $Y = \bigcup_{i=1}^n Y^i$ wird konstruiert als
+\begin{center}
+       $Y^i := \{(01)^n, (10)^n,(01)^{i-1}10(01)^{n-i},(10)^{i-1}01(10)^{n-i}\}$.
+\end{center}
+Mit genauerem Blick enthält $Y^i$ lediglich alle Folgen fester Länge von 01 bzw. 10 Bitblöcken mit höchstens einem komplementären Block an der Stelle des $i$-ten Blocks.
+$Y$ betrachtet alle diese Folgen mit höchstens einem komplementären Block an beliebiger Stelle. Es wird ersichtlich, dass dieser Aufbau für das Zentrum $v$, dessen $n$-Ball $Y^i$ enthält, an dem $i$-ten Block einen Doppelblock erzwingt.
+\begin{fakt} Für beliebige \(u_1, u_2 \in \{0, 1\}^n\) und \(v_1, v_2 \in \{0, 1\}^m\) mit \(n, m \in \mathbb{N}\) gilt:
+    \[
+    d(u_1 v_1, u_2 v_2) = d(u_1 u_2) + d(v_1 v_2).
+    \]
+    \end{fakt}
+\begin{lemma}
+    Wenn $Y^1 \subseteq B_{2n}(v,n)$ für ein $v \in \{0,1\}^{2n}$, dann sind die ersten zwei Bits von $v$ gleich.
+\end{lemma} 
+\begin{proof}[Beweis]
+Sei $Y^1 \subseteq B_{2n}(v, n)$. Nach Definition folgt, dass jeder Vektor zu $y\in Y$ eine Distanz von höchstens $n$ zu $v$ hat. Nach Fakt 1 lässt sich die Höchstdistanz in zwei weitere aufteilen, nämlich als $d(v|_1^2, y|_1^2) + d(v|_3^{2n}, y|_3^{2n}) \leq n$. Nach der Definition von $Y$ können die Subvektoren $y|_1^2$ und $y|_3^{2n}$ in dieser Summe konkretisiert werden mit
+\begin{center}
+$max\{d(v|_1^2,10),d(v|_1^2, 01)\} + 
+max\{d(v|_3^{2n},(01)^{n-1}), d(v|_3^{2n},(10)^{n-1}) \}\leq n$.
+\end{center}
+Da bei einem beliebigen Block in $v|_3^{2n}$ (d.h. 00, 01, 10 oder 11) eine Hamming-Distanz von mindestens 1 zu einem Block an derselben Position in $(01)^{n-1}$ bzw. $(10)^{n-1}$ besteht, gilt nach Fakt 1, dass $max\{d(v|_3^{2n},(01)^{n-1}), d(v|_3^{2n},(10)^{n-1}) \}\geq n-1$, und damit 
+\begin{center}
+$ max\{d(v|_1^2,10), d(v|_1^2,01)\} \leq 1$.
+\end{center}
+Also ist $v|_1^2$ ein Doppelblock.
+\end{proof}
+Lemma 4 lässt sich leicht über die Abbildung $S_i$ erweitern. $S_i$ verschiebt zirkulär die Bits eines Vektors um $2i-2$ Bits bzw. um $i-1$ Blöcke nach rechts. Mit genauerem Blick auf die Mengen $Y^1$ und $Y^i$ wird sofort klar, dass
+\begin{center}
+    $Y^i$ = $S_i(Y^1)$.
+\end{center}
+\begin{lemma}
+    Wenn $Y^i \subseteq B_{2n}(v,r)$ für $v\in\{0,1\}^{2n}$, dann ist $v_{2i-1} = v_{2i}$.
+\end{lemma}
+\begin{proof}[Beweis] Aus Lemma 1 ist bekannt, dass $S_i$ eine isometrische Isomorphie, also eine distanzen-erhaltende, bijektive Abbildung ist.
+\begin{align*}
+\shortintertext{Damit gilt}
+Y^i \subseteq B_{2n}(v,n) &\Leftrightarrow Y^1 \subseteq B_{2n}(S_i^{-1}(v),n).
+\shortintertext{Daraus folgt}
+\text{für alle }v\in\{0,1\}^{2n}: v_{2i-1}=v_{2i} &\Leftrightarrow (S_i^{-1}(v))_1 = (S_i^{-1}(v))_2.
+\end{align*}
+Nach Lemma 4 folgt damit, wenn $Y^i \subseteq B_{2n}(v,r) \text{ für ein } v\in\{0,1\}^{2n}$, dann $v_{2i-1} = v_{2i}$
+\end{proof}
+Eines der zwei wichtigsten Lemmata für die Reduktion ist nun die am Anfang benannte Eigenschaft der Doppelvektoren:
+\begin{lemma} Für alle $n>0$ und $v \in \{0,1\}^{n}$ gilt: 
+\begin{center}
+    $v$ ist ein Doppelvektor gdw. $Y \subseteq B_{2n}(v,n)$
+\end{center}
+und Y kann in Polynomialzeit bezüglich $n$ konstruiert werden.
+\end{lemma}
+\begin{proof}[Beweis]
+Betrachte $Y$ als $Y = \bigcup_{i=1}^n Y^i$.\\
+$\Rightarrow:$ Sei $v$ ein Doppelvektor und $y \in Y$. \\
+\setlength{\leftskip}{2em}
+Ein beliebiger Block aus $v$ ist ein Doppelblock, und aus $y$ entweder 01 oder 10. Daraus folgt $d(v_{2i-1}v_{2i}, y_{2i-1}y_{2i}) = 1$ für jedes $i\in\{1,\ldots,n\}$. Mehrfaches Anwenden von Fakt 1 ergibt $d(v,y)=n$, also $Y \subseteq B_{2n}(v,n)$.\\
+\setlength{\leftskip}{0em}
+$\Leftarrow: $ 
+Sei $Y\subseteq B_{2n}(v,n)$.\\
+\setlength{\leftskip}{2em}
+Nach Def. von $Y$ gilt $Y^i \subseteq B_{2n}(v,n)$ und nach Lemma 5 folgt direkt, dass $v_{2i-1}=v_{2i}$ für jedes $i\in\{1,\ldots,n\}$.\\
+\setlength{\leftskip}{0em}
+\vspace{-1.5em}
+\begin{align*}
+  \intertext{Y kann in Polynomialzeit bezüglich $n$ konstruiert werden, denn}
+    |Y| &= |\{(01)^n, (10)^n\} \cup \bigcup_{i=1}^{n} \{(01)^{i-1}10(01)^{n-i}\}
+    \cup\bigcup_{i=1}^{n} \{(10)^{i-1}01(10)^{n-i}\}|\\
+    &= \underbrace{|\{(01)^n, (10)^n\}|}_{2} + \underbrace{|\bigcup_{i=1}^{n} \{(01)^{i-1}10(01)^{n-i}\}|}_{n} + \underbrace{|\bigcup_{i=1}^{n} \{(10)^{i-1}01(10)^{n-i}\}|}_{n}\\
+    &= 2n+2.
+\end{align*}  
+\end{proof}
+\subsection{Die Reduktion}
+Zum Nachweis der NP-Vollständigkeit von MR muss gezeigt werden, dass das Problem sowohl in NP liegt als auch NP-schwer ist.
+Für die NP-Schwere wird 3SAT auf MR reduziert. In \hyperref[kod]{4.2.1} wird zunächst die Kodierung der Klauseln definiert als \textit{Gadget} für die tatsächliche Reduktionsfunktion in \hyperref[red]{4.2.2}. Zusätzlich wird im nächsten Abschnitt ein wichtiges Korollar abgeleitet, welches die kodierten Klauseln in Zusammenhang mit einer erfüllenden Belegung für die dazugehörige Formel setzt, sodass zusammen mit Lemma 6 in \hyperref[red]{4.2.2} die Korrektheit der Reduktion bewiesen wird.
+\subsubsection{Kodierung der Klauseln}\label{kod}
+Für eine Klausel $c$ aus einer 3CNF-Formel $\varphi$ über die Variablen $x_1,\ldots,x_n$ wird der Vektor $\hat{c}\in\{0,1\}^{2n}$ definiert mit
+\begin{center}
+für alle $i\in\{1,\ldots,n\}$, $\hat{c}_{2i-1}\hat{c}_{2i}=
+\begin{cases}
+00 & \text{wenn } c \text{ das Literal } \neg x_i \text{ enthält},\\
+11 & \text{wenn } c \text{ das Literal } x_i \text{ enthält},\\
+01 & \text{sonst}.
+\end{cases}$
+\end{center}
+Eine Klausel $c$ aus enthält genau 3 Literale, daher besteht $\hat{c}$ aus genau 3 Doppelblöcken, und $n-3$ Blöcken mit den Bits 01.\\
+Definiere $\Pi: \{0,1\}^n \to \{0,1\}^{2n}; v_1v_2...v_n \mapsto v_1v_1v_2v_2...v_nv_n$. Angemerkt sei hier, dass $\Pi$ eine Bijektion von der Menge $\{0,1\}^n$ auf die Menge aller Doppelvektoren in $\{0,1\}^{2n}$ ist. Die Belegung einer 3CNF $\varphi$ über den Variablen $x_1,\ldots,x_n$ wird als Vektor $v\in\{0,1\}^n$ kodiert, wobei das $i$-te Bit die Belegung der Variable $x_i$ ist.
+\begin{lemma}
+Sei $c$ eine Klausel aus einer 3CNF-Formel $\varphi$ über die Variablen $x_1,\ldots,x_n$. Dann gilt für beliebige $v \in \{0,1\}^{2n}$:
+\begin{center}
+    $\hat{c}\in B_{2n}(\Pi(v), n+1) \Leftrightarrow$ die Belegung $v$ erfüllt $c$.
+\end{center}
+\end{lemma}
+\begin{proof}[Beweis]
+Sei o.B.d.A. $c$ eine Klausel über die Variablen $x_1, x_2$ und $x_3$. Fakt 1 impliziert, dass
+\begin{center}
+    $d(\Pi(v),\hat{c}) = d(\Pi(v)|_1^6, \hat{c}|_1^6) + d(\Pi(v)|_7^{2n}, \hat{c}_7^{2n}) $.
+\end{center}
+Da $\Pi(v)$ ein Doppelvektor ist und die letzten $2n-6$ Bits bzw. die letzten $n-3$ Blöcke von $\hat{c}$ aus 01 Bits bestehen, gilt für alle $i\in\{4,\ldots,n \}: d(\Pi(v)|_{2i-1}^{2i}, \hat{c}|_{2i-1}^{2i})=1$. Mehrfaches Anwenden von Fakt 1 ergibt $d(\Pi(v)|_{7}^{2n}, \hat{c}|_{7}^{2n})=n-3$.\\
+Da die Variablen $x_1, x_2$ und $x_3$ in $\hat{c}$ vorkommen, besteht $\hat{c}|_1^6$ ausschließlich aus Dop\-pel\-blöck\-en, also gilt dann
+\begin{center}
+     $d(\Pi(v)|_1^6, \hat{c}|_1^6)\leq 4 \Leftrightarrow$ es gibt ein $i\in\{1,2,3\}$, sodass $(\Pi(v))_{2i-1}(\Pi(v))_{2i} = \hat{c}_{2i-1}\hat{c}_{2i}$.
+\end{center}
+Nach Konstruktion von $\hat{c}$ ist eine Übereinstimmung beider Blöcke $(\Pi(v))_{2i-1}(\Pi(v))_{2i}$ und $\hat{c}_{2i-1}\hat{c}_{2i}$ genau dann gegeben, wenn es ein $i\in\{1,2,3\}$ gibt mit $v_i=\hat{c}_{2i}$. Das ist äquivalent dazu, dass mindestens ein Literal erfüllt ist mit $v_i = \mathcal{I}(x_i)=0$, wenn $\neg x_i$ in $c$, oder  $v_i = \mathcal{I}(x_i)=1$, wenn $x_i$ in $c$ vorkommt.
+\end{proof}
+
+\begin{korollar}
+Sei $\varphi = c^1 \land \ldots \land c^t$ eine 3CNF über die Variablen $x_1,\ldots,x_n$, dann gilt für beliebige $v\in\{0,1\}^n$:
+\begin{center}
+    $\{\hat{c}^1, \ldots \hat{c}^t\}\subseteq B_{2n}(\Pi(v), n+1) \Leftrightarrow$ die Belegung $v$ erfüllt $\varphi$.
+\end{center}
+\end{korollar}
+\noindent
+Das ist eine direkte Konsequenz von Lemma 7.
+\begin{multicols}{2}[\columnsep2em]
+\vspace{0.4em}
+\begin{ex}In Abbildung 5 wird Korollar 1 anhand der 3CNF-Beispielformel $\varphi'$ veranschaulicht. Die fett markierten Blöcke zeigen eine Übereinstimmung eines Blocks von $\Pi(v)$ mit einem Block aus mindestens einem Vektor $\hat{c}^j$ mit $j\in\{0,1\}$. Dabei ist $\mathcal{I}(x_1)=0$, weil $\neg x_1$ in $c^1$, und analog $\mathcal{I}(x_2)=1$, weil $x_2$ in $c^2$ vorkommt. Mit diesen Belegungen sind die Klauseln bereits erfüllt.
+\end{ex}
+\columnbreak
+\begin{figure}[H]
+        \centering
+        \vspace{1em}
+         $\varphi' = (\neg x_1 \lor \neg x_2 \lor x_3) \land (x_2 \lor x_4 \lor \neg x_5)$\\[1em]
+        \begin{tabular}{|c||c||c||c||c||c|}
+        \hline
+        $\varphi'$ & $x_1$ & $x_2$ & $x_3$ & $x_4$ & $x_5$ \\
+        \hline
+        $\hat{c}^1$ & \textbf{00} & 00 & 11 & 01 & 01 \\
+        \hline
+        $\hat{c}^2$ & 01 & \textbf{11} & 01 & 11 & 00 \\
+        \hline
+        $\Pi(v)$ & \textbf{00} & \textbf{11} & 00 & 00 & 11 \\
+        \hline
+        $v = \mathcal{I}(\varphi')$ & \textbf{0} & \textbf{1} & $0$ & $0$ & $1$ \\
+        \hline
+        \end{tabular}
+        \caption{Das Beispiel für Korollar 1.}
+        \label{fig:enter-label}
+\end{figure}
+\end{multicols}
+\subsubsection{Von der 3CNF-Formel zum Code}\label{red}
+Mit Korollar 1 und Lemma 6 gibt es nun die Mittel, im Zuge der NP-Schwere einen Code $C_\varphi$ aus einer 3CNF-Formel $\varphi$ zu konstruieren, der den Anforderungen der Reduktion gerecht wird.
+\begin{theorem}
+Das Minimum-Radius-Problem ist NP-Vollständig.
+\end{theorem}
+\begin{proof}[Beweis]
+MR ist in NP, denn der Zeuge $v\in\{0,1\}^n$ mit $C \subseteq B_n(v,k)$ ist offensichtlich polynomiell längenbeschränkt in der Größe der Eingabe $\langle C,k \rangle$.
+Der Verifizier rechnet und prüft die Hamming-Distanzen für alle $c \in C$ zu $v$ durch und akzeptiert nur dann, wenn alle Distanzen höchstens k betragen, sonst verwirft er.
+Offensichtlich ist der Verifizierer polynomiell zeitbeschränkt in $\mathcal{O}(|C|)$.\\
+Für die NP-Schwere wird 3SAT auf MR reduziert. Die Reduktionsfunktion wendet folgende Konstruktion an:
+Gegeben sei als Eingabe eine 3CNF-Formel $\varphi=c^1 \land \ldots \land c^t$ über die Variablen $x_1,\ldots,x_n$. Erweitere die Konstruktion von $Y$ um einen Block, sodass $Y\subseteq\{0,1\}^{2(n+1)}$ und definiere Code $C_\varphi \subseteq \{0,1\}^{2(n+1)}$ mit 
+\begin{center}
+    $C_\varphi := Y \cup \{\hat{c}^100,\ldots,\hat{c}^t00\}$.
+\end{center}
+Für die Korrektheit der Reduktion ist zu zeigen, dass
+\begin{center}
+    $\varphi$ ist erfüllbar $\Leftrightarrow$ $R(C_\varphi) \leq n+1$
+\end{center}
+\begin{description}
+    \item[$\Rightarrow:$]  Angenommen $\varphi$ ist erfüllbar.
+Dann gibt es eine Belegung $v\in\{0,1\}^n$, die $\varphi$ erfüllt. Mit dem Doppelvektor $\Pi(v)00$ gilt nach Lemma 2, dass 
+\begin{center}
+    $Y\subseteq B_{2(n+1)}(\Pi(v)00,n+1)$ 
+\end{center}
+denn Lemma 2 ist wirksam für alle $n>0$, also insbesondere für $n+1$.\\
+Aufgrund der Erfüllbarkeit von $\varphi$ folgt aus Korollar 1 5, dass $\{\hat{c}^1,\ldots,\hat{c}^t\}\subseteq B_{2n}(v,n+1)$. Nach Fakt 1 gilt für beliebige $u,v\in \{0,1\}^n:  d(u,v)=d(u00,v00)$, und damit
+\begin{center}
+     $\{\hat{c}^100,\ldots,\hat{c}^t00\}\subseteq B_{2(n+1)}(\Pi(v)00,n+1)$
+\end{center}
+Nach Def. von $C_\varphi$ ist $C_\varphi \subseteq  B_{2(n+1)}(\Pi(v)00,n+1)$.
+\item[$\Leftarrow:$] Angenommen $R(C_\varphi)\leq n+1$.
+Dann gibt es $b\in \{0,1\}^{2(n+1)}$ mit $C\subseteq B_{2(n+1)}(b,n+1)$. Nach Def. von $C_\varphi$ muss auch gelten, dass $Y\subseteq  B_{2(n+1)}(b,n+1)$. Nach Lemma 2 folgt daraus, dass $b$ ein Doppelvektor ist. Da $\Pi$ eine Bijektion zwischen $\{0,1\}^n$ und der Menge aller Doppelvektoren in $\{0,1\}^{2n}$ ist, gibt es ein $v \in \{0,1\}^n$ mit $\Pi(v)=b|_1^{2n}$.\\
+Nach Def. von $C$ ist auch $\{\hat{c}^100,\ldots,\hat{c}^t00\}\subseteq B_{2(n+1)}(b,n+1)$, sodass mit Fakt 1 folgt, dass
+\begin{center}
+ $\{\hat{c}^1,\ldots,\hat{c}^t\}\subseteq B_{2n}(\Pi(v),n+1)$.
+ \end{center}
+ Nach Korollar 1 erfüllt die Belegung $v$ die 3CNF-Formel $\varphi$.
+\end{description}
+ Die Reduktion ist offensichtlich polynomiell zeitbeschränkt, denn 
+ \begin{itemize}
+     \item  die Konstruktion von $Y$ ist nach Lemma 6 polynomiell zeitbeschränkt.
+     \item die Konstruktion von  $\{\hat{c}^100,\ldots,\hat{c}^t00\}$ folgt aus der mehrfachen Anwendung der Klausel-Kodierung, welche Vektoren $\hat{c}$ der Länge 2n produziert, indem pro Variable in $\varphi$ ein Block in $\hat{c}$ erzeugt wird: die Abbildung wird $(n\cdot t)$-mal angewendet.
+ \end{itemize}
+\end{proof}
+ \begin{theorem}
+ Das Maximum Covering Radius Problem ist NP-Vollständig
+ \end{theorem}
+ \begin{proof}[Beweis]
+     Nach Theorem 1 ist bekannt, dass sowohl MR $\leq_p$ MCR als auch MCR $\leq_p$ MR.\\ Aus MCR $\leq_p$ MR und MR $\in$ NP folgt, dass MCR $\in$ NP.
+ Aus 3SAT $\leq_p$ MR $\leq_p$ MCR folgt, dass MCR NP-schwer ist. 
+ \end{proof}
+\section{Ausblick}\label{absch5}
+Eine alternative Interpretation des Minimum-Radius-Problems besteht darin, zu be\-stimmen, welcher String die kürzeste Hamming-Distanz zu allen anderen Strings einer bestimmten Menge aufweist.
+Ein bekanntes Anwendungsgebiet des Closest-String-Pro\-blems ist das Finden einer Consensussequenz in der Genetik \cite{Festa2011EfficientSF}. Eine Consensussequenz ist eine funktionell wichtige DNA- oder Proteinsequenz, die bei verschiedenen Organismen weitgehend übereinstimmt, jedoch nicht identisch ist. Ein konkretes Beispiel ist folgendes:
+Bei der Erstellung von Gensonden (DNA- oder RNA-Moleküle) für bakterielle Infektionen geht es darum, eine spezielle DNA-Sequenz zu finden, die in allen DNA-Sequenzen einer Gruppe verwandter krankheitserregender Bakterien vorkommt, aber nicht in der DNA des Wirts (z.B. eines Menschen). Diese Sonden binden dann an diese spezifischen Zielsequenzen. Wird eine Bindung angezeigt, bedeutet das, dass mindestens eine der bakteriellen Spezies im Wirt vorhanden ist \cite{Festa2011EfficientSF}.
+Die effizienten Algorithmen zur Lösung des Closest-String-Problems basieren häufig auf Metaheuristiken.
+ \newpage
+ \bibliographystyle{bababbrv}
+ 
+\bibliography{sample}
+
+%\bibliographystyle{plain}
+%\bibliography{literature}
+
+
+\end{document}  
